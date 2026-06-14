@@ -1,3 +1,9 @@
+"""Tiny mock customer-support search tool.
+
+This replaces an external search service for the demo and makes tests
+deterministic.
+"""
+
 TOOL_SCHEMA = {
     "type": "function",
     "name": "search",
@@ -24,6 +30,7 @@ KB = {
 
 
 def run(query: str) -> str:
+    """Return the first mock KB answer whose keyword appears in the query."""
     for keyword, answer in KB.items():
         if keyword.lower() in query.lower():
             return answer

@@ -1,3 +1,9 @@
+"""FastAPI application entry point.
+
+This module wires together the API routers, database initialization, and the
+static pages used by the demo UI.
+"""
+
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -18,6 +24,7 @@ STATIC_DIR = BASE_DIR / "static"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Create tables and run lightweight migrations before serving requests."""
     init_db()
     yield
 
@@ -38,9 +45,11 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 @app.get("/", include_in_schema=False)
 def index() -> FileResponse:
+    """Serve the main chat console."""
     return FileResponse(STATIC_DIR / "index.html")
 
 
 @app.get("/documents/{document_id}", include_in_schema=False)
 def document_detail_page(document_id: str) -> FileResponse:
+    """Serve the document detail page; data is fetched by the page script."""
     return FileResponse(STATIC_DIR / "document.html")

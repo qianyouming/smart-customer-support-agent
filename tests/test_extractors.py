@@ -1,3 +1,5 @@
+"""Tests for uploaded file text extraction."""
+
 import pytest
 
 from app.rag.extractors import extract_upload_text

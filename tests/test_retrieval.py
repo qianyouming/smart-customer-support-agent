@@ -1,3 +1,5 @@
+"""Tests for document upload, retrieval, detail lookup, and deletion."""
+
 from fastapi.testclient import TestClient
 
 from app.main import app

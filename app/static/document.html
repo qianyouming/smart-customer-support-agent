@@ -8,6 +8,7 @@
   </head>
   <body class="document-page">
     <main class="document-shell">
+      <!-- Static shell; document.js fills title, metadata, TOC, and chunks. -->
       <header class="document-hero">
         <a class="back-link" href="/">返回 Agent 工作台</a>
         <p class="eyebrow">Knowledge Base Document</p>
@@ -16,6 +17,7 @@
       </header>
 
       <section class="document-layout">
+        <!-- Chunk navigation stays separate from chunk content for long documents. -->
         <aside class="document-toc">
           <h2>内容切片</h2>
           <div id="chunkToc" class="chunk-toc-list"></div>

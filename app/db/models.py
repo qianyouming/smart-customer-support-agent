@@ -1,3 +1,5 @@
+"""SQLAlchemy ORM models for persisted application data."""
+
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
@@ -9,6 +11,8 @@ class Base(DeclarativeBase):
 
 
 class ChatSession(Base):
+    """A user-visible chat conversation."""
+
     __tablename__ = "sessions"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -22,6 +26,8 @@ class ChatSession(Base):
 
 
 class Message(Base):
+    """One user or assistant message within a session."""
+
     __tablename__ = "messages"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -34,6 +40,8 @@ class Message(Base):
 
 
 class Document(Base):
+    """Uploaded knowledge-base document metadata."""
+
     __tablename__ = "documents"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -45,6 +53,8 @@ class Document(Base):
 
 
 class DocumentChunk(Base):
+    """A retrievable text chunk extracted from an uploaded document."""
+
     __tablename__ = "document_chunks"
 
     id: Mapped[str] = mapped_column(String(96), primary_key=True)
@@ -57,6 +67,8 @@ class DocumentChunk(Base):
 
 
 class ToolCall(Base):
+    """Recorded tool call for debugging and process tracing."""
+
     __tablename__ = "tool_calls"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -70,6 +82,8 @@ class ToolCall(Base):
 
 
 class EvalRun(Base):
+    """One evaluation batch run."""
+
     __tablename__ = "eval_runs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -82,6 +96,8 @@ class EvalRun(Base):
 
 
 class EvalResult(Base):
+    """One row-level result inside an evaluation run."""
+
     __tablename__ = "eval_results"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

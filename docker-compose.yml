@@ -1,10 +1,11 @@
 services:
   knowledge-agent:
+    # Build the local FastAPI app image from Dockerfile.
     build: .
     ports:
       - "8000:8000"
     env_file:
       - .env
     volumes:
+      # Persist SQLite data outside the container.
       - ./data:/app/data
-

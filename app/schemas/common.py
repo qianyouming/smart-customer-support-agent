@@ -1,6 +1,9 @@
+"""Common API schemas."""
+
 from pydantic import BaseModel
 
 
 class ErrorResponse(BaseModel):
-    error: str
+    """Simple error payload shape."""
 
+    error: str

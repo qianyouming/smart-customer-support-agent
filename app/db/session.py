@@ -1,3 +1,5 @@
+"""Database engine, session factory, and lightweight SQLite migrations."""
+
 from pathlib import Path
 
 from sqlalchemy import create_engine, inspect, text
@@ -8,6 +10,7 @@ from app.db.models import Base
 
 
 def _ensure_sqlite_parent() -> None:
+    """Create the local data directory before SQLite opens the database file."""
     if not settings.database_url.startswith("sqlite:///"):
         return
     raw_path = settings.database_url.replace("sqlite:///", "", 1)
@@ -22,16 +25,19 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
 def init_db() -> None:
+    """Create tables and apply compatibility migrations."""
     Base.metadata.create_all(bind=engine)
     _migrate_sqlite_sessions()
 
 
 def get_db_session() -> Session:
+    """Return a new SQLAlchemy session after ensuring the schema exists."""
     init_db()
     return SessionLocal()
 
 
 def _migrate_sqlite_sessions() -> None:
+    """Add columns introduced after the initial demo database was created."""
     if not settings.database_url.startswith("sqlite"):
         return
     inspector = inspect(engine)

@@ -1,12 +1,21 @@
+"""LLM client wrapper.
+
+The project defaults to mock responses so it can run without API keys. When
+USE_REAL_LLM=true and an API key is configured, it calls an OpenAI-compatible
+chat completions endpoint.
+"""
+
 from app.core.config import settings
 from app.llm.prompts import SYSTEM_PROMPT
 
 
 def has_real_llm() -> bool:
+    """Return whether real model calls should be used."""
     return settings.use_real_llm and bool(settings.openai_api_key)
 
 
 def _mock_answer(message: str, context: str | None = None) -> str:
+    """Deterministic fallback used for local demos and automated tests."""
     lowered = message.lower()
     if "退款" in message:
         return "标准退款周期为 3-5 个工作日，通常会原路退回。"
@@ -20,6 +29,7 @@ def _mock_answer(message: str, context: str | None = None) -> str:
 
 
 def generate_answer(message: str, context: str | None = None) -> str:
+    """Generate an answer from either the mock responder or a real LLM."""
     if not has_real_llm():
         return _mock_answer(message=message, context=context)
 

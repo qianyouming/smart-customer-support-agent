@@ -1,3 +1,5 @@
+"""Upload text extraction helpers."""
+
 from io import BytesIO
 from pathlib import Path
 
@@ -5,6 +7,7 @@ TEXT_EXTENSIONS = {".txt", ".md", ".csv", ".json"}
 
 
 def extract_upload_text(filename: str, content: bytes) -> str:
+    """Extract readable text from supported upload formats."""
     suffix = Path(filename).suffix.lower()
     if suffix in TEXT_EXTENSIONS:
         text = content.decode("utf-8", errors="ignore")
@@ -20,6 +23,7 @@ def extract_upload_text(filename: str, content: bytes) -> str:
 
 
 def _extract_pdf_text(content: bytes) -> str:
+    """Extract text from a PDF with pypdf; scanned PDFs may not have text."""
     try:
         from pypdf import PdfReader
 

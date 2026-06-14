@@ -1,3 +1,9 @@
+"""Database CRUD helpers.
+
+This module is the persistence boundary for sessions, messages, uploaded
+documents, retrieval chunks, tool traces, and eval reports.
+"""
+
 import re
 from collections.abc import Iterable
 from datetime import datetime
@@ -11,6 +17,7 @@ from app.db.session import get_db_session
 
 
 def _is_test_session(session_id: str) -> bool:
+    """Mark eval/test sessions so they do not clutter the user sidebar."""
     lowered = session_id.lower()
     return (
         lowered.startswith("test")
@@ -21,12 +28,14 @@ def _is_test_session(session_id: str) -> bool:
 
 
 def _default_session_title(session_id: str) -> str:
+    """Generate a friendly title before the first user message arrives."""
     if session_id.startswith("demo-"):
         return f"新会话 {datetime.now():%m-%d %H:%M}"
     return "新的客服咨询"
 
 
 def _title_from_message(content: str) -> str:
+    """Use the first user message as an automatic session title."""
     clean = " ".join(content.strip().split())
     if not clean:
         return "新的客服咨询"
@@ -34,12 +43,14 @@ def _title_from_message(content: str) -> str:
 
 
 def _is_default_title(title: str | None) -> bool:
+    """Only auto-rename sessions that still have a generated default title."""
     if not title:
         return True
     return title.startswith("新会话") or title == "新的客服咨询" or title == "客服会话"
 
 
 def ensure_session(session_id: str) -> None:
+    """Create a session row if it does not exist yet."""
     with get_db_session() as db:
         if db.get(ChatSession, session_id) is None:
             db.add(
@@ -53,6 +64,7 @@ def ensure_session(session_id: str) -> None:
 
 
 def add_message(session_id: str, role: str, content: str) -> int:
+    """Persist a message and update session title/timestamp when needed."""
     ensure_session(session_id)
     with get_db_session() as db:
         record = Message(session_id=session_id, role=role, content=content)
@@ -69,6 +81,7 @@ def add_message(session_id: str, role: str, content: str) -> int:
 
 
 def get_recent_messages(session_id: str, limit: int | None = None) -> list[dict[str, str]]:
+    """Load recent history for prompt context."""
     ensure_session(session_id)
     limit = limit or settings.max_history_messages
     with get_db_session() as db:
@@ -82,6 +95,7 @@ def get_recent_messages(session_id: str, limit: int | None = None) -> list[dict[
 
 
 def list_sessions() -> list[dict[str, str | int | None]]:
+    """Return sidebar summaries ordered by latest activity."""
     with get_db_session() as db:
         rows = db.execute(
             select(
@@ -114,6 +128,7 @@ def list_sessions() -> list[dict[str, str | int | None]]:
 
 
 def rename_session(session_id: str, title: str) -> bool:
+    """Rename a session; returns False for empty titles."""
     clean_title = title.strip()
     if not clean_title:
         return False
@@ -128,6 +143,7 @@ def rename_session(session_id: str, title: str) -> bool:
 
 
 def delete_session(session_id: str) -> bool:
+    """Delete a session and cascade-delete related messages/tool calls."""
     with get_db_session() as db:
         session = db.get(ChatSession, session_id)
         if session is None:
@@ -138,6 +154,7 @@ def delete_session(session_id: str) -> bool:
 
 
 def list_session_messages(session_id: str) -> list[dict[str, str]]:
+    """Return all messages for one session in chronological order."""
     ensure_session(session_id)
     with get_db_session() as db:
         rows = db.scalars(
@@ -147,6 +164,7 @@ def list_session_messages(session_id: str) -> list[dict[str, str]]:
 
 
 def add_tool_call(session_id: str, tool_name: str, tool_input: str, tool_output: str) -> int:
+    """Persist one tool invocation for traceability."""
     ensure_session(session_id)
     with get_db_session() as db:
         record = ToolCall(
@@ -162,6 +180,7 @@ def add_tool_call(session_id: str, tool_name: str, tool_input: str, tool_output:
 
 
 def create_document(filename: str, chunks: Iterable[str], content_type: str = "text/plain") -> dict[str, str | int]:
+    """Store a document and its chunks, replacing older uploads with same name."""
     document_id = str(uuid4())
     chunk_list = list(chunks)
     with get_db_session() as db:
@@ -184,6 +203,7 @@ def create_document(filename: str, chunks: Iterable[str], content_type: str = "t
 
 
 def delete_document(document_id: str) -> bool:
+    """Delete a document and cascade-delete its chunks."""
     with get_db_session() as db:
         document = db.get(Document, document_id)
         if document is None:
@@ -194,6 +214,7 @@ def delete_document(document_id: str) -> bool:
 
 
 def list_documents() -> list[dict[str, str | int]]:
+    """Return document summaries for the knowledge-base sidebar."""
     with get_db_session() as db:
         rows = db.execute(
             select(Document.id, Document.filename, func.count(DocumentChunk.id))
@@ -208,6 +229,7 @@ def list_documents() -> list[dict[str, str | int]]:
 
 
 def get_document_detail(document_id: str) -> dict[str, str | int | list[dict[str, str | int]]] | None:
+    """Return document metadata and all chunks for the detail page."""
     with get_db_session() as db:
         document = db.get(Document, document_id)
         if document is None:
@@ -235,10 +257,12 @@ def get_document_detail(document_id: str) -> dict[str, str | int | list[dict[str
 
 
 def _tokens(text: str) -> set[str]:
+    """Tokenize English words/numbers and short Chinese phrases for keyword search."""
     return set(re.findall(r"[A-Za-z0-9]+|[\u4e00-\u9fff]{2,}", text.lower()))
 
 
 def retrieve_chunks(query: str, top_k: int | None = None) -> list[dict[str, str]]:
+    """Score chunks by token overlap and return the best matches."""
     limit = top_k or settings.top_k_chunks
     query_tokens = _tokens(query)
     if not query_tokens:
@@ -261,6 +285,7 @@ def retrieve_chunks(query: str, top_k: int | None = None) -> list[dict[str, str]
 
 
 def create_eval_run(name: str, total: int, passed: int) -> int:
+    """Create an eval run summary row."""
     with get_db_session() as db:
         run = EvalRun(name=name, total=total, passed=passed)
         db.add(run)
@@ -277,6 +302,7 @@ def add_eval_result(
     passed: bool,
     notes: str = "",
 ) -> None:
+    """Append one detailed eval result row."""
     with get_db_session() as db:
         db.add(
             EvalResult(

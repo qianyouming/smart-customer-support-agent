@@ -1,3 +1,5 @@
+"""Retrieval tool wrapper for uploaded document chunks."""
+
 from app.rag.retriever import retrieve
 
 TOOL_SCHEMA = {
@@ -15,8 +17,8 @@ TOOL_SCHEMA = {
 
 
 def run(query: str) -> str:
+    """Return retrieved chunks as text formatted for citations."""
     chunks = retrieve(query)
     if not chunks:
         return "没有检索到相关文档片段。"
     return "\n\n".join(f"[{item['source']}] {item['snippet']}" for item in chunks)
-

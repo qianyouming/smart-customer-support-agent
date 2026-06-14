@@ -1,3 +1,4 @@
+// Main console script for chat, session management, document upload, and traces.
 const state = {
   sessionId: localStorage.getItem("agent.sessionId") || "demo-session",
   sessions: [],
@@ -13,6 +14,7 @@ function setSession(sessionId) {
 }
 
 function escapeHtml(value) {
+  // User/document content is inserted into HTML in several render functions.
   return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -50,6 +52,7 @@ function renderMessages(messages) {
 }
 
 function renderHandoff(needHuman, reason) {
+  // The right trace panel explains whether a human should take over.
   const target = $("#handoff");
   if (!needHuman) {
     target.className = "trace-list empty";
@@ -66,6 +69,7 @@ function renderHandoff(needHuman, reason) {
 }
 
 function renderTools(tools) {
+  // Tool traces make the Agent behavior visible during demos and debugging.
   const target = $("#toolTrace");
   $("#lastToolCount").textContent = `${tools.length} tools`;
   if (!tools.length) {
@@ -89,6 +93,7 @@ function renderTools(tools) {
 }
 
 function renderCitations(citations) {
+  // Citations come from retrieval output and show which chunks supported an answer.
   const target = $("#citations");
   if (!citations.length) {
     target.className = "trace-list empty";
@@ -116,6 +121,7 @@ function resetTrace() {
 }
 
 async function checkHealth() {
+  // The header status dot is a lightweight backend liveness indicator.
   try {
     const response = await fetch("/health");
     if (!response.ok) throw new Error("health check failed");
@@ -128,6 +134,7 @@ async function checkHealth() {
 }
 
 function renderSessions() {
+  // Session rows are rendered from server state so refreshes stay consistent.
   const target = $("#sessionList");
   const keyword = $("#sessionSearch").value.trim().toLowerCase();
   const sessions = state.sessions.filter((session) => {
@@ -150,6 +157,7 @@ function renderSessions() {
       const isEditing = session.session_id === state.editingSessionId;
       const preview = session.preview || "暂无预览";
       if (isEditing) {
+        // Inline rename keeps the sidebar interaction close to Codex-style UX.
         return `
           <form class="session-row active editing" data-rename-form="${escapeHtml(session.session_id)}">
             <input class="session-title-input" name="title" value="${escapeHtml(session.title)}" maxlength="120" />
@@ -240,6 +248,7 @@ function sortSessions(sessions) {
 }
 
 async function loadSessions() {
+  // Load summaries only; individual messages are fetched when a session opens.
   const target = $("#sessionList");
   target.innerHTML = "<div class='sidebar-empty'>加载中</div>";
   const response = await fetch("/api/sessions");
@@ -280,6 +289,7 @@ async function renameSession(sessionId, nextTitle) {
 }
 
 async function deleteSession(sessionId) {
+  // Deleting the active session switches to a new blank local session.
   const current = state.sessions.find((session) => session.session_id === sessionId);
   const title = current?.title || "这个会话";
   const confirmed = window.confirm(`确认删除“${title}”吗？删除后将无法恢复。`);
@@ -315,6 +325,7 @@ async function loadSession(sessionId) {
 }
 
 async function loadFiles() {
+  // The sidebar shows metadata; clicking opens the full document detail page.
   const target = $("#fileList");
   target.innerHTML = "<p class='trace-list empty'>加载中</p>";
   const response = await fetch("/api/files");
@@ -382,6 +393,7 @@ async function uploadFile(file) {
 }
 
 async function sendMessage(message) {
+  // Chat responses include answer text plus tool traces, citations, and handoff state.
   appendMessage("user", message);
   $("#sendButton").disabled = true;
 
@@ -430,6 +442,7 @@ $("#refreshSessions").addEventListener("click", loadSessions);
 $("#sessionSearch").addEventListener("input", renderSessions);
 
 $("#newSession").addEventListener("click", async () => {
+  // Avoid filling the sidebar with empty sessions.
   if (!hasUserMessage()) {
     showSidebarNotice("已创建新会话，请先在当前会话提问。");
     return;

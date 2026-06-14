@@ -1,6 +1,9 @@
+// Document detail page script. It reads the document id from the URL and
+// renders all parsed chunks returned by the backend.
 const $ = (selector) => document.querySelector(selector);
 
 function escapeHtml(value) {
+  // Chunk text may contain arbitrary document content.
   return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -10,6 +13,7 @@ function escapeHtml(value) {
 }
 
 function getDocumentId() {
+  // URL shape: /documents/{document_id}
   const parts = window.location.pathname.split("/").filter(Boolean);
   return parts[1] || "";
 }
@@ -24,6 +28,7 @@ function renderError(message) {
 }
 
 function renderDocument(document) {
+  // The table of contents links to chunk cards rendered below.
   document.title = document.filename;
   $("#documentTitle").textContent = document.filename;
   $("#documentMeta").textContent = `${document.content_type} · ${document.chunks_count} chunks`;
@@ -55,6 +60,7 @@ function renderDocument(document) {
 }
 
 async function loadDocument() {
+  // Keep the page resilient if the document was deleted after the link opened.
   const documentId = getDocumentId();
   if (!documentId) {
     renderError("缺少文档 ID。");

@@ -1,4 +1,5 @@
 :root {
+  /* Shared product-console color tokens. */
   --bg: #f6f7f4;
   --sidebar: #eef1ec;
   --panel: #ffffff;
@@ -45,6 +46,7 @@ button:active {
 }
 
 .app-shell {
+  /* Desktop layout mirrors an Agent console: sidebar, chat, trace panel. */
   display: grid;
   grid-template-columns: 292px minmax(420px, 1fr) 320px;
   height: 100vh;
@@ -157,6 +159,7 @@ p {
 }
 
 .session-row {
+  /* Session actions stay compact so long titles remain readable. */
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -466,6 +469,7 @@ p {
 }
 
 .trace-panel {
+  /* Right panel exposes the Agent's reasoning artifacts without modal dialogs. */
   overflow-y: auto;
   background: #f7f9f6;
   border-left: 1px solid var(--line);
@@ -543,6 +547,7 @@ p {
 }
 
 .document-page {
+  /* Standalone document view uses the same palette as the console. */
   min-height: 100vh;
   background:
     radial-gradient(circle at 16% 0%, rgba(31, 111, 91, 0.12), transparent 26%),
@@ -693,6 +698,7 @@ p {
 }
 
 @media (max-width: 720px) {
+  /* Mobile stacks the console into a single column. */
   .app-shell {
     grid-template-columns: 1fr;
     height: auto;

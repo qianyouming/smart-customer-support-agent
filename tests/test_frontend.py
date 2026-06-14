@@ -1,3 +1,5 @@
+"""Smoke tests for static frontend routes and assets."""
+
 from fastapi.testclient import TestClient
 
 from app.main import app

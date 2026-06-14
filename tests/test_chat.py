@@ -1,3 +1,5 @@
+"""Tests for health and core chat behavior."""
+
 from fastapi.testclient import TestClient
 
 from app.main import app

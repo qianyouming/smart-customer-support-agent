@@ -1,3 +1,9 @@
+"""Safe calculator tool.
+
+The tool parses arithmetic with Python's AST instead of using eval(), so only
+simple numeric expressions are accepted.
+"""
+
 import ast
 import operator
 import re
@@ -27,6 +33,7 @@ _OPS: dict[type[ast.AST], Callable[[float, float], float]] = {
 
 
 def _eval_node(node: ast.AST) -> float:
+    """Recursively evaluate a whitelisted AST expression node."""
     if isinstance(node, ast.Expression):
         return _eval_node(node.body)
     if isinstance(node, ast.Constant) and isinstance(node.value, int | float):
@@ -39,6 +46,7 @@ def _eval_node(node: ast.AST) -> float:
 
 
 def extract_expression(text: str) -> str | None:
+    """Extract the first arithmetic-looking expression from user text."""
     match = re.search(r"[-+*/().\d\s]+", text)
     if not match:
         return None
@@ -47,9 +55,9 @@ def extract_expression(text: str) -> str | None:
 
 
 def run(expression: str) -> str:
+    """Evaluate an arithmetic expression and return a display-friendly result."""
     tree = ast.parse(expression, mode="eval")
     result = _eval_node(tree)
     if result.is_integer():
         return str(int(result))
     return str(result)
-
