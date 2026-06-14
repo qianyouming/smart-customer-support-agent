@@ -1,23 +1,38 @@
 # Smart Customer Support Agent
 
-A lightweight Agent + RAG demo built with `FastAPI`, `SQLite`, and a simple web UI.
+A lightweight `FastAPI + RAG + SQLite` demo for customer-support Agent workflows.
 
-This project is designed for learning, demos, and internship portfolios. It focuses on a complete but approachable workflow:
+This project is built as a learning and portfolio-ready MVP. It demonstrates how to combine session management, document ingestion, retrieval, citations, and persistence into a complete Agent-style application.
 
-`user question -> tool routing -> retrieval/search -> structured answer -> citations -> session persistence`
+## Highlights
 
-## Features
-
-- Multi-turn chat with persistent sessions
+- Multi-turn chat with persistent session history
 - Session create / rename / delete
-- Document upload with `.txt`, `.md`, `.csv`, `.json`, and `.pdf` support
-- Simple RAG pipeline with chunking and keyword-based retrieval
-- Citation display for retrieved content
+- Document upload and parsing for `.txt`, `.md`, `.csv`, `.json`, and `.pdf`
+- Simple RAG workflow with chunking and retrieval
+- Citation display for retrieved knowledge
 - Tool routing for calculator, mock support search, and retrieval
-- Human handoff suggestion for low-confidence or missing knowledge cases
-- Document detail page for inspecting parsed chunks
-- SQLite persistence for sessions, messages, documents, chunks, and eval results
-- Automated tests and a small eval runner
+- Human handoff suggestion for unanswered or low-confidence cases
+- Document detail page for viewing parsed chunks
+- Automated tests and eval runner
+
+## Screenshots
+
+### Main Console
+
+![Main UI](docs/screenshots/main-ui.png)
+
+### RAG Answer With Citations
+
+![RAG Answer](docs/screenshots/rag-answer.png)
+
+### Session Management
+
+![Session Management](docs/screenshots/session-management.png)
+
+### Document Detail
+
+![Document Detail](docs/screenshots/document-detail.png)
 
 ## Tech Stack
 
@@ -56,7 +71,7 @@ python -m pip install -r requirements.txt
 
 ## Environment
 
-This project runs in mock mode by default. If you want to connect a real model, create a local `.env` file based on `.env.example`.
+The project runs in mock mode by default. If you want to connect a real model, create a local `.env` file from `.env.example`.
 
 ```env
 OPENAI_API_KEY=
@@ -76,7 +91,7 @@ OPENAI_API_KEY=your_api_key
 OPENAI_BASE_URL=your_base_url
 ```
 
-## Run the App
+## Run
 
 ```powershell
 uvicorn app.main:app --reload
@@ -91,13 +106,13 @@ Open:
 
 1. Open the web UI.
 2. Create or select a session.
-3. Ask a normal question such as `退款周期是多久？`
+3. Ask a normal support question such as `How long does a refund take?`
 4. Upload [sample_docs/agent_intro.txt](D:/knowledge-agent/sample_docs/agent_intro.txt)
-5. Ask `根据上传文档回答：RAG 是什么？`
+5. Ask `What is RAG based on the uploaded document?`
 6. Inspect citations and tool usage.
-7. Open a document from the knowledge-base panel to view chunk details.
+7. Open a document from the knowledge-base panel to inspect chunk content.
 
-## Testing
+## Test
 
 ```powershell
 python -m pytest
@@ -109,7 +124,7 @@ python -m pytest
 python -m evals.run_eval
 ```
 
-The eval report is written to:
+Eval output:
 
 ```text
 evals/eval_report.json
@@ -135,18 +150,18 @@ Main tables:
 
 ## Why This Project
 
-This project is intentionally built as a small Agent MVP instead of a large framework-heavy system. The goal is to understand and demonstrate:
+This project is intentionally kept as a small Agent MVP instead of a heavy framework demo. It is meant to show:
 
-- how session state is managed
-- how documents are parsed and chunked
-- how retrieval is wired into answering
-- how backend persistence supports the product experience
-- how to test a full Agent-style workflow
+- how session state is stored and managed
+- how uploaded documents are parsed and chunked
+- how retrieval is connected to answering
+- how backend persistence supports product behavior
+- how to verify an Agent workflow with tests and evals
 
-## Next Improvements
+## Future Improvements
 
 - Replace keyword retrieval with embedding-based retrieval
 - Upgrade SQLite to PostgreSQL + pgvector
-- Improve document preview and admin visibility
-- Add better session search and filters
-- Add screenshot assets for the GitHub page
+- Add admin visibility for sessions and database inspection
+- Improve document preview and retrieval quality
+- Add real UI screenshots to this README
