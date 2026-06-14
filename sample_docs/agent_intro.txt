@@ -1,0 +1,4 @@
+Agent applications combine a language model, tools, state, memory, and evaluation.
+RAG means retrieval augmented generation. A RAG system retrieves relevant documents first and then asks the model to answer using that context.
+Good production agents need observability, safety boundaries, and clear tool schemas.
+

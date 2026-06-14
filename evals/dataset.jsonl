@@ -1,0 +1,4 @@
+{"message":"23 * 47 等于多少？","expected_tool":"calculator","expected_contains":"1081","expected_need_human":false}
+{"message":"退款周期是多久？","expected_tool":"search","expected_contains":"3-5","expected_need_human":false}
+{"message":"根据上传文档回答：RAG 是什么？","expected_tool":"retrieval","expected_contains":"RAG","expected_need_human":false}
+{"message":"根据上传文档回答：不存在的售后制度是什么？","expected_tool":"retrieval","expected_contains":"转人工","expected_need_human":true}

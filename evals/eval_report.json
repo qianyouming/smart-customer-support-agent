@@ -1,0 +1,56 @@
+{
+  "eval_run_id": 10,
+  "total": 4,
+  "passed": 4,
+  "pass_rate": 1.0,
+  "tool_accuracy": 1.0,
+  "answer_contains_accuracy": 1.0,
+  "handoff_accuracy": 1.0,
+  "results": [
+    {
+      "message": "23 * 47 等于多少？",
+      "ok": true,
+      "tools": [
+        "calculator"
+      ],
+      "contains_ok": true,
+      "tool_ok": true,
+      "handoff_ok": true,
+      "need_human": false
+    },
+    {
+      "message": "退款周期是多久？",
+      "ok": true,
+      "tools": [
+        "search"
+      ],
+      "contains_ok": true,
+      "tool_ok": true,
+      "handoff_ok": true,
+      "need_human": false
+    },
+    {
+      "message": "根据上传文档回答：RAG 是什么？",
+      "ok": true,
+      "tools": [
+        "retrieval"
+      ],
+      "contains_ok": true,
+      "tool_ok": true,
+      "handoff_ok": true,
+      "need_human": false
+    },
+    {
+      "message": "根据上传文档回答：不存在的售后制度是什么？",
+      "ok": true,
+      "tools": [
+        "retrieval",
+        "search"
+      ],
+      "contains_ok": true,
+      "tool_ok": true,
+      "handoff_ok": true,
+      "need_human": true
+    }
+  ]
+}

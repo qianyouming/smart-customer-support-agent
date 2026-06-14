@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Smart Customer Support Agent</title>
+    <link rel="stylesheet" href="/static/styles.css?v=20260614-codex-sidebar-2" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <p>Agent Console</p>
+          <h1>智能客服 Agent</h1>
+        </div>
+
+        <button id="newSession" class="new-chat-button" type="button">新建会话</button>
+        <input id="sessionSearch" class="sidebar-search" type="search" placeholder="搜索会话" />
+        <div id="sidebarNotice" class="sidebar-notice" hidden></div>
+
+        <div class="sidebar-section session-section">
+          <div class="sidebar-section-head">
+            <span>最近会话</span>
+            <button id="refreshSessions" type="button">刷新</button>
+          </div>
+          <div id="sessionList" class="session-list"></div>
+        </div>
+
+        <div class="sidebar-section docs-section">
+          <div class="sidebar-section-head">
+            <span>知识库</span>
+            <button id="refreshFiles" type="button">刷新</button>
+          </div>
+          <label class="upload-button">
+            <input id="fileInput" type="file" accept=".txt,.md,.csv,.json,.pdf" />
+            上传文档
+          </label>
+          <div id="fileList" class="doc-list"></div>
+        </div>
+      </aside>
+
+      <section class="main-column">
+        <header class="chat-header">
+          <div>
+            <p class="eyebrow">Smart Customer Support Agent</p>
+            <h2>客服问答</h2>
+            <span id="sessionLabel">session: demo-session</span>
+          </div>
+          <div class="status">
+            <span id="healthDot" class="dot"></span>
+            <span id="healthText">checking</span>
+          </div>
+        </header>
+
+        <div class="quick-actions">
+          <button type="button" data-prompt="23 * 47 等于多少？">计算演示</button>
+          <button type="button" data-prompt="退款周期是多久？">客服搜索</button>
+          <button type="button" data-prompt="根据上传文档回答：RAG 是什么？">RAG 演示</button>
+          <button type="button" data-prompt="这个问题我想转人工客服">转人工演示</button>
+        </div>
+
+        <div id="messages" class="messages"></div>
+
+        <form id="chatForm" class="composer">
+          <textarea id="messageInput" rows="2" placeholder="输入问题，比如：退款周期是多久？"></textarea>
+          <button id="sendButton" type="submit">发送</button>
+        </form>
+      </section>
+
+      <aside class="trace-panel">
+        <div class="trace-head">
+          <h2>过程追踪</h2>
+          <span id="lastToolCount">0 tools</span>
+        </div>
+        <div class="trace-block">
+          <h3>人工介入</h3>
+          <div id="handoff" class="trace-list empty">暂不需要人工</div>
+        </div>
+        <div class="trace-block">
+          <h3>工具调用</h3>
+          <div id="toolTrace" class="trace-list empty">暂无工具调用</div>
+        </div>
+        <div class="trace-block">
+          <h3>引用来源</h3>
+          <div id="citations" class="trace-list empty">暂无引用</div>
+        </div>
+      </aside>
+    </main>
+    <script src="/static/app.js?v=20260614-codex-sidebar-2"></script>
+  </body>
+</html>
