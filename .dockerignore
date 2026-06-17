@@ -1,0 +1,17 @@
+.git
+.venv
+__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.env
+data
+docs/screenshots
+evals/eval_report.json
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+Thumbs.db
+Desktop.ini

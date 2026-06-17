@@ -1,7 +1,9 @@
-"""Database CRUD helpers.
+"""数据库 CRUD 操作模块。
 
-This module is the persistence boundary for sessions, messages, uploaded
-documents, retrieval chunks, tool traces, and eval reports.
+本模块是持久化边界层，封装了会话、消息、文档、检索片段、
+工具调用记录和评测报告的增删改查操作。
+
+所有数据库交互集中于此，上层业务逻辑不直接操作 ORM 模型。
 """
 
 import re
@@ -16,8 +18,13 @@ from app.db.models import ChatSession, Document, DocumentChunk, EvalResult, Eval
 from app.db.session import get_db_session
 
 
+# ============================================================
+# 会话管理相关的内部工具函数
+# ============================================================
+
+
 def _is_test_session(session_id: str) -> bool:
-    """Mark eval/test sessions so they do not clutter the user sidebar."""
+    """判断是否为测试/评测会话，这类会话不显示在用户侧边栏中。"""
     lowered = session_id.lower()
     return (
         lowered.startswith("test")
@@ -28,14 +35,14 @@ def _is_test_session(session_id: str) -> bool:
 
 
 def _default_session_title(session_id: str) -> str:
-    """Generate a friendly title before the first user message arrives."""
+    """在首条用户消息到达前生成一个友好的默认标题。"""
     if session_id.startswith("demo-"):
         return f"新会话 {datetime.now():%m-%d %H:%M}"
     return "新的客服咨询"
 
 
 def _title_from_message(content: str) -> str:
-    """Use the first user message as an automatic session title."""
+    """用首条用户消息内容自动生成会话标题（截取前28字符）。"""
     clean = " ".join(content.strip().split())
     if not clean:
         return "新的客服咨询"
@@ -43,14 +50,20 @@ def _title_from_message(content: str) -> str:
 
 
 def _is_default_title(title: str | None) -> bool:
-    """Only auto-rename sessions that still have a generated default title."""
+    """判断标题是否仍为系统生成的默认标题（用于决定是否自动更新）。"""
     if not title:
         return True
     return title.startswith("新会话") or title == "新的客服咨询" or title == "客服会话"
 
 
+# ============================================================
+# 会话 CRUD
+# ============================================================
 def ensure_session(session_id: str) -> None:
-    """Create a session row if it does not exist yet."""
+    """确保会话行存在，不存在则自动创建。
+
+    这是一个幂等操作，多次调用安全无副作用。
+    """
     with get_db_session() as db:
         if db.get(ChatSession, session_id) is None:
             db.add(
@@ -64,7 +77,12 @@ def ensure_session(session_id: str) -> None:
 
 
 def add_message(session_id: str, role: str, content: str) -> int:
-    """Persist a message and update session title/timestamp when needed."""
+    """持久化一条消息，并在必要时更新会话标题和时间戳。
+
+    逻辑：
+    - 每条消息都更新会话的 updated_at
+    - 首条用户消息会自动更新会话标题（替换默认标题）
+    """
     ensure_session(session_id)
     with get_db_session() as db:
         record = Message(session_id=session_id, role=role, content=content)
@@ -72,6 +90,7 @@ def add_message(session_id: str, role: str, content: str) -> int:
         session = db.get(ChatSession, session_id)
         if session is not None:
             session.updated_at = datetime.now()
+        # 首条用户消息自动成为会话标题
         if role == "user":
             if session is not None and _is_default_title(session.title):
                 session.title = _title_from_message(content)
@@ -81,7 +100,7 @@ def add_message(session_id: str, role: str, content: str) -> int:
 
 
 def get_recent_messages(session_id: str, limit: int | None = None) -> list[dict[str, str]]:
-    """Load recent history for prompt context."""
+    """加载最近的对话历史，用于构建 LLM 的上下文提示。"""
     ensure_session(session_id)
     limit = limit or settings.max_history_messages
     with get_db_session() as db:
@@ -95,7 +114,10 @@ def get_recent_messages(session_id: str, limit: int | None = None) -> list[dict[
 
 
 def list_sessions() -> list[dict[str, str | int | None]]:
-    """Return sidebar summaries ordered by latest activity."""
+    """返回侧边栏展示的会话摘要列表，按最近活动排序。
+
+    自动过滤掉测试和评测会话，不展示给普通用户。
+    """
     with get_db_session() as db:
         rows = db.execute(
             select(
@@ -128,7 +150,7 @@ def list_sessions() -> list[dict[str, str | int | None]]:
 
 
 def rename_session(session_id: str, title: str) -> bool:
-    """Rename a session; returns False for empty titles."""
+    """重命名会话；空标题会被拒绝并返回 False。"""
     clean_title = title.strip()
     if not clean_title:
         return False
@@ -143,7 +165,7 @@ def rename_session(session_id: str, title: str) -> bool:
 
 
 def delete_session(session_id: str) -> bool:
-    """Delete a session and cascade-delete related messages/tool calls."""
+    """删除会话及其关联的消息和工具调用（通过 ORM 级联）。"""
     with get_db_session() as db:
         session = db.get(ChatSession, session_id)
         if session is None:
@@ -154,7 +176,7 @@ def delete_session(session_id: str) -> bool:
 
 
 def list_session_messages(session_id: str) -> list[dict[str, str]]:
-    """Return all messages for one session in chronological order."""
+    """返回指定会话的所有消息，按时间正序排列。"""
     ensure_session(session_id)
     with get_db_session() as db:
         rows = db.scalars(
@@ -163,8 +185,13 @@ def list_session_messages(session_id: str) -> list[dict[str, str]]:
     return [{"role": row.role, "content": row.content, "created_at": row.created_at.isoformat()} for row in rows]
 
 
+# ============================================================
+# 工具调用记录
+# ============================================================
+
+
 def add_tool_call(session_id: str, tool_name: str, tool_input: str, tool_output: str) -> int:
-    """Persist one tool invocation for traceability."""
+    """持久化一次工具调用记录，用于可追溯性和 UI 展示。"""
     ensure_session(session_id)
     with get_db_session() as db:
         record = ToolCall(
@@ -179,15 +206,28 @@ def add_tool_call(session_id: str, tool_name: str, tool_input: str, tool_output:
         return record.id
 
 
+# ============================================================
+# 文档和知识库管理
+# ============================================================
+
+
 def create_document(filename: str, chunks: Iterable[str], content_type: str = "text/plain") -> dict[str, str | int]:
-    """Store a document and its chunks, replacing older uploads with same name."""
+    """存储文档及其分块，同名文件会被替换（覆盖上传）。
+
+    流程：
+    1. 生成唯一 document_id
+    2. 删除同名旧文档及其片段（实现"覆盖上传"）
+    3. 写入新文档元数据和所有片段
+    """
     document_id = str(uuid4())
     chunk_list = list(chunks)
     with get_db_session() as db:
+        # 覆盖同名旧文档
         old_ids = db.scalars(select(Document.id).where(Document.filename == filename)).all()
         if old_ids:
             db.execute(delete(DocumentChunk).where(DocumentChunk.document_id.in_(old_ids)))
             db.execute(delete(Document).where(Document.id.in_(old_ids)))
+        # 写入新文档
         db.add(Document(id=document_id, filename=filename, content_type=content_type))
         for index, chunk in enumerate(chunk_list):
             db.add(
@@ -203,7 +243,7 @@ def create_document(filename: str, chunks: Iterable[str], content_type: str = "t
 
 
 def delete_document(document_id: str) -> bool:
-    """Delete a document and cascade-delete its chunks."""
+    """删除文档及其关联片段（ORM 级联删除）。"""
     with get_db_session() as db:
         document = db.get(Document, document_id)
         if document is None:
@@ -214,7 +254,7 @@ def delete_document(document_id: str) -> bool:
 
 
 def list_documents() -> list[dict[str, str | int]]:
-    """Return document summaries for the knowledge-base sidebar."""
+    """返回知识库文档摘要列表，供侧边栏展示。"""
     with get_db_session() as db:
         rows = db.execute(
             select(Document.id, Document.filename, func.count(DocumentChunk.id))
@@ -229,7 +269,7 @@ def list_documents() -> list[dict[str, str | int]]:
 
 
 def get_document_detail(document_id: str) -> dict[str, str | int | list[dict[str, str | int]]] | None:
-    """Return document metadata and all chunks for the detail page."""
+    """返回文档元数据和所有片段内容，供详情页展示。"""
     with get_db_session() as db:
         document = db.get(Document, document_id)
         if document is None:
@@ -256,13 +296,29 @@ def get_document_detail(document_id: str) -> dict[str, str | int | list[dict[str
         }
 
 
+# ============================================================
+# RAG 检索
+# ============================================================
+
+
 def _tokens(text: str) -> set[str]:
-    """Tokenize English words/numbers and short Chinese phrases for keyword search."""
-    return set(re.findall(r"[A-Za-z0-9]+|[\u4e00-\u9fff]{2,}", text.lower()))
+    """分词：提取英文单词/数字和中文双字词组，用于关键词匹配。
+
+    这是一个简易的分词实现，通过正则匹配：
+    - 英文单词和数字：[A-Za-z0-9]+
+    - 中文双字及以上短语：[一-鿿]{2,}
+    """
+    return set(re.findall(r"[A-Za-z0-9]+|[一-鿿]{2,}", text.lower()))
 
 
 def retrieve_chunks(query: str, top_k: int | None = None) -> list[dict[str, str]]:
-    """Score chunks by token overlap and return the best matches."""
+    """基于词汇重叠度对文档片段评分，返回最相关的结果。
+
+    算法：计算查询 tokens 和片段 tokens 的交集大小作为相关性分数，
+    按分数降序返回 top_k 个结果。
+
+    这是一个简易的关键词检索实现，生产环境建议替换为向量检索。
+    """
     limit = top_k or settings.top_k_chunks
     query_tokens = _tokens(query)
     if not query_tokens:
@@ -274,18 +330,25 @@ def retrieve_chunks(query: str, top_k: int | None = None) -> list[dict[str, str]
             .join(Document, Document.id == DocumentChunk.document_id)
         ).all()
 
+    # 计算每个片段与查询的词汇重叠分数
     scored: list[tuple[int, dict[str, str]]] = []
     for filename, content in rows:
         score = len(query_tokens & _tokens(content))
         if score > 0:
             scored.append((score, {"source": filename, "snippet": content[:300]}))
 
+    # 按相关性分数降序排列，取前 top_k 个
     scored.sort(key=lambda item: item[0], reverse=True)
     return [item for _, item in scored[:limit]]
 
 
+# ============================================================
+# 评测（Eval）相关
+# ============================================================
+
+
 def create_eval_run(name: str, total: int, passed: int) -> int:
-    """Create an eval run summary row."""
+    """创建一次评测批次记录。"""
     with get_db_session() as db:
         run = EvalRun(name=name, total=total, passed=passed)
         db.add(run)
@@ -302,7 +365,7 @@ def add_eval_result(
     passed: bool,
     notes: str = "",
 ) -> None:
-    """Append one detailed eval result row."""
+    """添加一条评测明细结果。"""
     with get_db_session() as db:
         db.add(
             EvalResult(

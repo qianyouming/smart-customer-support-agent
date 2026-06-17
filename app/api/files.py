@@ -1,7 +1,7 @@
-"""Knowledge-base file APIs.
+"""知识库文件管理 API 路由。
 
-Uploaded files are parsed into text, chunked, and stored so the retrieval tool
-can use them as RAG context.
+上传的文件经过文本提取、分块后存入数据库，
+供 RAG 检索工具在对话中使用。
 """
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -17,7 +17,11 @@ router = APIRouter(prefix="/api/files", tags=["files"])
 
 @router.post("", response_model=DocumentIngestResponse)
 async def upload_file(file: UploadFile = File(...)) -> DocumentIngestResponse:
-    """Upload one file and persist its extracted chunks."""
+    """上传文件并持久化其提取的文本片段。
+
+    处理流程：读取文件 → 提取文本 → 分块 → 存入数据库
+    支持格式：.txt, .md, .csv, .json, .pdf
+    """
     content = await file.read()
     try:
         text = extract_upload_text(filename=file.filename or "uploaded.txt", content=content)
@@ -30,13 +34,13 @@ async def upload_file(file: UploadFile = File(...)) -> DocumentIngestResponse:
 
 @router.get("", response_model=list[DocumentSummary])
 def get_files() -> list[DocumentSummary]:
-    """List uploaded documents without returning full chunk content."""
+    """列出所有已上传的文档（不包含片段内容）。"""
     return [DocumentSummary(**item) for item in list_documents()]
 
 
 @router.get("/{document_id}", response_model=DocumentDetail)
 def get_file_detail(document_id: str) -> DocumentDetail:
-    """Return one document with all chunks for the detail page."""
+    """返回单个文档的元数据和所有片段内容，供详情页展示。"""
     document = get_document_detail(document_id)
     if document is None:
         raise HTTPException(status_code=404, detail="Document not found.")
@@ -45,7 +49,7 @@ def get_file_detail(document_id: str) -> DocumentDetail:
 
 @router.delete("/{document_id}")
 def remove_file(document_id: str) -> dict[str, bool]:
-    """Delete a document and its associated chunks."""
+    """删除文档及其关联的所有片段。"""
     deleted = delete_document(document_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Document not found.")

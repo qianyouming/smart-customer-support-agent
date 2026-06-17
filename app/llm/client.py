@@ -1,8 +1,8 @@
-"""LLM client wrapper.
+"""LLM 客户端封装模块。
 
-The project defaults to mock responses so it can run without API keys. When
-USE_REAL_LLM=true and an API key is configured, it calls an OpenAI-compatible
-chat completions endpoint.
+项目默认使用 Mock 响应，无需 API 密钥即可运行和测试。
+当设置 USE_REAL_LLM=true 并配置 API 密钥后，会调用 OpenAI 兼容的
+Chat Completions 接口（支持各种国产模型代理）。
 """
 
 from app.core.config import settings
@@ -10,12 +10,15 @@ from app.llm.prompts import SYSTEM_PROMPT
 
 
 def has_real_llm() -> bool:
-    """Return whether real model calls should be used."""
+    """判断是否应使用真实模型调用（需同时启用开关和配置密钥）。"""
     return settings.use_real_llm and bool(settings.openai_api_key)
 
 
 def _mock_answer(message: str, context: str | None = None) -> str:
-    """Deterministic fallback used for local demos and automated tests."""
+    """确定性的模拟回答，用于本地演示和自动化测试。
+
+    根据关键词匹配返回预设回复，确保测试结果可预测。
+    """
     lowered = message.lower()
     if "退款" in message:
         return "标准退款周期为 3-5 个工作日，通常会原路退回。"
@@ -29,13 +32,24 @@ def _mock_answer(message: str, context: str | None = None) -> str:
 
 
 def generate_answer(message: str, context: str | None = None) -> str:
-    """Generate an answer from either the mock responder or a real LLM."""
+    """生成回答的统一入口：自动选择 Mock 或真实 LLM。
+
+    Args:
+        message: 用户当前消息
+        context: 组装好的上下文（历史对话 + 工具输出）
+
+    Returns:
+        生成的回答文本
+    """
     if not has_real_llm():
         return _mock_answer(message=message, context=context)
 
+    # 延迟导入 openai，仅在真正需要时加载（避免未安装时报错）
     from openai import OpenAI
 
     client = OpenAI(api_key=settings.openai_api_key, base_url=settings.openai_base_url)
+
+    # 将上下文拼接到用户输入中，让模型能参考工具结果和历史对话
     user_input = message if not context else f"Context:\n{context}\n\nUser question:\n{message}"
     response = client.chat.completions.create(
         model=settings.model,
