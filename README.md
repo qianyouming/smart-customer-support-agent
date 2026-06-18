@@ -71,6 +71,106 @@ It is not just a chat demo. It is a small but complete Agent MVP that shows how 
 
 ## 核心架构
 
+### 面试展示版架构图
+
+```mermaid
+flowchart LR
+    U["User / Interviewer<br/>提问 / 上传文档 / 查看引用"] --> FE
+
+    subgraph L1["Presentation Layer"]
+        FE["Web UI<br/>Session Sidebar / Chat Panel / Upload Panel / Document Detail"]
+    end
+
+    FE --> NX
+
+    subgraph L2["Access Layer"]
+        NX["Nginx<br/>Reverse Proxy / Public Entry"]
+    end
+
+    NX --> API
+
+    subgraph L3["Application Layer"]
+        API["FastAPI API<br/>/api/chat /api/sessions /api/files /health"]
+        CHAT["Chat Service<br/>消息编排 / 会话绑定 / 回答组装"]
+        SESSION["Session Manager<br/>创建 / 重命名 / 删除 / 历史读取"]
+        FILES["File Service<br/>上传 / 解析 / 文档详情"]
+        API --> CHAT
+        API --> SESSION
+        API --> FILES
+    end
+
+    CHAT --> ROUTER
+    CHAT --> MEMORY
+    FILES --> INGEST
+
+    subgraph L4["Agent Orchestration Layer"]
+        ROUTER["Tool Router<br/>calculator / search / retrieval"]
+        MEMORY["Conversation Context<br/>历史消息 / 当前问题 / 检索上下文"]
+        ANSWER["Answer Composer<br/>引用拼装 / 最终响应"]
+        ROUTER --> ANSWER
+        MEMORY --> ANSWER
+    end
+
+    ROUTER --> CALC
+    ROUTER --> SEARCH
+    ROUTER --> RETRIEVE
+
+    subgraph L5["Tool & Model Layer"]
+        CALC["Calculator Tool"]
+        SEARCH["Search Tool<br/>Mock Support Search"]
+        RETRIEVE["Retrieval Tool"]
+        LLM["LLM Client<br/>Mock Mode / Real API Mode"]
+    end
+
+    RETRIEVE --> RAG
+    ANSWER --> LLM
+    RAG --> ANSWER
+
+    subgraph L6["RAG Pipeline"]
+        INGEST["Ingest Pipeline<br/>extract -> chunk -> store"]
+        EXTRACT["Extractors<br/>txt / md / csv / json / pdf"]
+        CHUNK["Chunking<br/>文本切分"]
+        STORE["Chunk Store"]
+        QUERY["Retriever<br/>关键词召回 / top-k"]
+        INGEST --> EXTRACT --> CHUNK --> STORE
+        STORE --> QUERY
+        QUERY --> RAG["Retrieved Context + Citations"]
+    end
+
+    SESSION --> DB
+    FILES --> DB
+    CHAT --> DB
+    STORE --> DB
+
+    subgraph L7["Persistence Layer"]
+        DB[("SQLite<br/>sessions / messages / documents / chunks / tool_calls / evals")]
+    end
+
+    subgraph L8["DevOps & Quality"]
+        DOCKER["Docker Compose<br/>Containerized Deployment"]
+        TEST["Pytest + Eval Runner<br/>功能验证 / Agent 链路验证"]
+    end
+
+    DOCKER -.deploys.-> NX
+    TEST -.verifies.-> API
+
+    classDef user fill:#FFF4D6,stroke:#D97706,color:#7C2D12,stroke-width:2px;
+    classDef ui fill:#E0F2FE,stroke:#0284C7,color:#0C4A6E,stroke-width:2px;
+    classDef app fill:#ECFCCB,stroke:#65A30D,color:#365314,stroke-width:2px;
+    classDef orchestration fill:#F3E8FF,stroke:#7C3AED,color:#4C1D95,stroke-width:2px;
+    classDef rag fill:#FCE7F3,stroke:#DB2777,color:#831843,stroke-width:2px;
+    classDef data fill:#EDE9FE,stroke:#6D28D9,color:#3730A3,stroke-width:2px;
+    classDef ops fill:#DCFCE7,stroke:#16A34A,color:#14532D,stroke-width:2px;
+
+    class U user;
+    class FE,NX ui;
+    class API,CHAT,SESSION,FILES app;
+    class ROUTER,MEMORY,ANSWER,CALC,SEARCH,RETRIEVE,LLM orchestration;
+    class INGEST,EXTRACT,CHUNK,STORE,QUERY,RAG rag;
+    class DB data;
+    class DOCKER,TEST ops;
+```
+
 这个项目可以理解为 5 层：
 
 ### 1. Frontend
